@@ -1,16 +1,49 @@
-# codealpha_flashcard_quiz
+# 🧠 Flashcard Quiz App
 
-A new Flutter project.
+A Flutter-based Flashcard Quiz App for learning using interactive flashcards.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🚀 Features
 
-A few resources to get you started if this is your first Flutter project:
+- 📚 Question & Answer flashcards
+- 🔄 Tap to flip card
+- 🎯 Simple UI design
+- ➕ Easy to extend questions
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🛠️ Tech Stack
+
+- Flutter
+- Dart
+
+---
+
+## 📂 Project Structure
+
+lib/
+ ├── models/
+ ├── data/
+ ├── screens/
+ ├── widgets/
+ └── main.dart
+
+---
+
+## ▶️ How to Run
+
+flutter pub get  
+flutter run  
+
+---
+
+## 👨‍💻 Author
+
+Bismillah
+
+---
+
+## 📌 Note
+
+This project is part of CodeAlpha internship tasks.
