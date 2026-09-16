@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "578620667364",
+    "project_id": "codealpha-flashcard-quiz",
+    "storage_bucket": "codealpha-flashcard-quiz.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:578620667364:android:9dc53696237a65922c43f1",
+        "android_client_info": {
+          "package_name": "com.example.codealpha_flashcard_quiz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkqU1dvEJW406oSo6zREkqmEp1beft1G8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

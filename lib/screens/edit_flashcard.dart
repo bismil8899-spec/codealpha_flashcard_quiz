@@ -1,6 +1,6 @@
-
 import 'package:flutter/material.dart';
 import '../data/flashcards.dart';
+import '../services/firestore_service.dart';
 
 class EditFlashcardScreen extends StatefulWidget {
   final Flashcard flashcard;
@@ -19,6 +19,10 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen> {
   late TextEditingController questionController;
   late TextEditingController answerController;
 
+  final FirestoreService firestoreService = FirestoreService();
+
+  bool isUpdating = false;
+
   @override
   void initState() {
     super.initState();
@@ -32,18 +36,49 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen> {
     );
   }
 
-  void updateFlashcard() {
+  Future<void> updateFlashcard() async {
     if (questionController.text.trim().isEmpty ||
         answerController.text.trim().isEmpty) {
       return;
     }
 
+    if (widget.flashcard.id == null) {
+      return;
+    }
+
     setState(() {
-      widget.flashcard.question = questionController.text.trim();
-      widget.flashcard.answer = answerController.text.trim();
+      isUpdating = true;
     });
 
-    Navigator.pop(context);
+    try {
+      await firestoreService.updateFlashcard(
+        widget.flashcard.id!,
+        questionController.text.trim(),
+        answerController.text.trim(),
+      );
+
+      widget.flashcard.question =
+          questionController.text.trim();
+
+      widget.flashcard.answer =
+          answerController.text.trim();
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() {
+        isUpdating = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error updating flashcard: $e"),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -87,8 +122,11 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: updateFlashcard,
-                child: const Text("Update Flashcard"),
+                onPressed:
+                    isUpdating ? null : updateFlashcard,
+                child: isUpdating
+                    ? const CircularProgressIndicator()
+                    : const Text("Update Flashcard"),
               ),
             ),
           ],

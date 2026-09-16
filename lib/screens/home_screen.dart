@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/flashcards.dart';
 import 'add_flashcard.dart';
 import 'edit_flashcard.dart';
+import '/services/firestore_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +14,57 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
   bool showAnswer = false;
+  bool isLoading = true;
+
+  final FirestoreService firestoreService = FirestoreService();
+
+  @override
+  void initState() {
+    super.initState();
+    loadFlashcards();
+  }
+
+  // LOAD FROM FIRESTORE
+  Future<void> loadFlashcards() async {
+    try {
+      final firestoreCards = await firestoreService.getFlashcards();
+
+      if (firestoreCards.isEmpty) {
+        // First time: upload original 10 cards
+        for (final card in flashcards) {
+          await firestoreService.addFlashcard(
+            card.question,
+            card.answer,
+          );
+        }
+
+        // Load again with Firestore document IDs
+        final updatedCards = await firestoreService.getFlashcards();
+
+        setState(() {
+          flashcards = updatedCards;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          flashcards = firestoreCards;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error loading flashcards: $e"),
+          ),
+        );
+      }
+    }
+  }
 
   void nextCard() {
     if (currentIndex < flashcards.length - 1) {
@@ -32,27 +84,47 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void deleteCard() {
+  // DELETE
+  Future<void> deleteCard() async {
     if (flashcards.isEmpty) return;
 
-    setState(() {
-      flashcards.removeAt(currentIndex);
+    final card = flashcards[currentIndex];
 
-      if (flashcards.isEmpty) {
-        currentIndex = 0;
+    try {
+      if (card.id != null) {
+        await firestoreService.deleteFlashcard(card.id!);
+      }
+
+      setState(() {
+        flashcards.removeAt(currentIndex);
+
+        if (flashcards.isEmpty) {
+          currentIndex = 0;
+          showAnswer = false;
+          return;
+        }
+
+        if (currentIndex >= flashcards.length) {
+          currentIndex = flashcards.length - 1;
+        }
+
         showAnswer = false;
-        return;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error deleting flashcard: $e"),
+          ),
+        );
       }
-
-      if (currentIndex >= flashcards.length) {
-        currentIndex = flashcards.length - 1;
-      }
-
-      showAnswer = false;
-    });
+    }
   }
 
-  void editCard() async {
+  // EDIT
+  Future<void> editCard() async {
+    if (flashcards.isEmpty) return;
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -67,6 +139,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xffF5F7FA),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Colors.indigo,
+          ),
+        ),
+      );
+    }
+
     if (flashcards.isEmpty) {
       return Scaffold(
         backgroundColor: const Color(0xffF5F7FA),
@@ -77,7 +160,10 @@ class _HomeScreenState extends State<HomeScreen> {
           title: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.menu_book_rounded, color: Colors.white),
+              Icon(
+                Icons.menu_book_rounded,
+                color: Colors.white,
+              ),
               SizedBox(width: 8),
               Text(
                 "Flashcard Quiz",
@@ -100,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
 
-            setState(() {});
+            await loadFlashcards();
           },
         ),
         body: const Center(
@@ -146,7 +232,10 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.menu_book_rounded, color: Colors.white),
+            Icon(
+              Icons.menu_book_rounded,
+              color: Colors.white,
+            ),
             SizedBox(width: 8),
             Text(
               "Flashcard Quiz",
@@ -169,7 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
 
-          setState(() {});
+          await loadFlashcards();
         },
       ),
       body: Padding(
@@ -240,7 +329,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -256,7 +347,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 20),
 
             Row(
-              children: [                Expanded(
+              children: [
+                Expanded(
                   child: ElevatedButton.icon(
                     onPressed: previousCard,
                     icon: const Icon(Icons.arrow_back),
@@ -264,7 +356,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey.shade700,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 15,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -282,7 +376,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 15,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -303,7 +399,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -322,7 +420,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),

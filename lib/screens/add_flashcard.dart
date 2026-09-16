@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/flashcards.dart';
+import '../services/firestore_service.dart';
 
 class AddFlashcardScreen extends StatefulWidget {
   const AddFlashcardScreen({super.key});
@@ -9,20 +10,47 @@ class AddFlashcardScreen extends StatefulWidget {
 }
 
 class _AddFlashcardScreenState extends State<AddFlashcardScreen> {
-  final TextEditingController questionController = TextEditingController();
-  final TextEditingController answerController = TextEditingController();
+  final TextEditingController questionController =
+      TextEditingController();
 
-  void saveFlashcard() {
-    if (questionController.text.isNotEmpty &&
-        answerController.text.isNotEmpty) {
-      flashcards.add(
-        Flashcard(
-          question: questionController.text,
-          answer: answerController.text,
-        ),
+  final TextEditingController answerController =
+      TextEditingController();
+
+  final FirestoreService firestoreService = FirestoreService();
+
+  bool isSaving = false;
+
+  Future<void> saveFlashcard() async {
+    if (questionController.text.trim().isEmpty ||
+        answerController.text.trim().isEmpty) {
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      await firestoreService.addFlashcard(
+        questionController.text.trim(),
+        answerController.text.trim(),
       );
 
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() {
+        isSaving = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error saving flashcard: $e"),
+          ),
+        );
+      }
     }
   }
 
@@ -51,7 +79,9 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
+
             const SizedBox(height: 20),
+
             TextField(
               controller: answerController,
               decoration: const InputDecoration(
@@ -59,12 +89,16 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
+
             const SizedBox(height: 30),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: saveFlashcard,
-                child: const Text("Save Flashcard"),
+                onPressed: isSaving ? null : saveFlashcard,
+                child: isSaving
+                    ? const CircularProgressIndicator()
+                    : const Text("Save Flashcard"),
               ),
             ),
           ],
